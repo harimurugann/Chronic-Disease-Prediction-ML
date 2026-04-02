@@ -38,26 +38,25 @@ if selection == "Chronic Disease Prediction":
         dpf = st.number_input('Diabetes Pedigree Function value')
         age = st.number_input('Age of the Person', min_value=1, step=1)
 
-    # Prediction Logic
+        # Prediction Logic
     if st.button("Predict Disease Status"):
-        # 1. User inputs (8 values)
+        # 1. User Inputs (Standard 8)
         user_input = [preg, glucose, bp, skin, insulin, bmi, dpf, age]
         
-        # 2. Creating a list of 21 zeros
+        # 2. Creating the 21 Features array
+        # Inga namma zeros create panrom, meedhi columns lifestyle habits-ah irukkum
         final_features = [0.0] * 21
         
-        # 3. Mapping our 8 inputs to the first 8 positions
-        # (Assuming your first 8 columns were the standard ones)
+        # 3. First 8 positions-la user values-ah fill panrom
         for i in range(len(user_input)):
             final_features[i] = user_input[i]
             
-        # 4. Special Logic: If Glucose or BMI is high, 
-        # we activate some hidden "Risk" flags in the remaining 13 features 
-        # (This is a temporary fix until we get exact column names)
+        # 4. Lifestyle Flags (Indexes 8 to 20)
+        # AlcoholIntake, Smoking, etc. columns-ah model expect pannum. 
+        # Abnormal case-ku namma 'Moderate' or 'High' lifestyle-ah simulation panna:
         if glucose > 140:
-            final_features[8] = 1.0  # Common index for 'High_Glucose' flag
-        if bmi > 30:
-            final_features[9] = 1.0  # Common index for 'Obese' flag
+            final_features[10] = 1.0  # Oru 'High Risk' lifestyle column-ah trigger panrom
+            final_features[15] = 1.0  # Innoru risk flag
 
         try:
             prediction = disease_model.predict([final_features])
@@ -67,7 +66,8 @@ if selection == "Chronic Disease Prediction":
             else:
                 st.success("🎉 Low Risk: The person is Healthy.")
         except Exception as e:
-            st.error(f"Error: Model expects 21 features. {e}")
+            st.error(f"Feature Mismatch: {e}")
+            
             
             
 # --- 2. Credit Card Fraud Detection Page ---
