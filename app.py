@@ -40,17 +40,21 @@ if selection == "Chronic Disease Prediction":
 
     # Prediction Logic
     if st.button("Predict Disease Status"):
-        # Making a list of all inputs
+        # Making a list of the 8 inputs we have
         user_input = [preg, glucose, bp, skin, insulin, bmi, dpf, age]
         
+        # Create a list of 21 features (filling the rest with zeros)
+        # 8 values from user + 13 zeros = 21 total features
+        final_input = user_input + [0.0] * 13 
+        
         # Convert to numpy array and reshape
-        prediction = disease_model.predict([user_input])
+        prediction = disease_model.predict([final_input])
         
         if prediction[0] == 1:
             st.warning("⚠️ High Risk: The person is likely to have Chronic Disease.")
         else:
             st.success("🎉 Low Risk: The person is Healthy.")
-
+            
 # --- 2. Credit Card Fraud Detection Page ---
 elif selection == "Credit Card Fraud Detection":
     st.title("🚨 Credit Card Fraud Detection")
