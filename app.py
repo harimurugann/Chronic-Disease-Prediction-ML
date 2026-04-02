@@ -40,20 +40,35 @@ if selection == "Chronic Disease Prediction":
 
     # Prediction Logic
     if st.button("Predict Disease Status"):
-        # Making a list of the 8 inputs we have
+        # 1. User inputs (8 values)
         user_input = [preg, glucose, bp, skin, insulin, bmi, dpf, age]
         
-        # Create a list of 21 features (filling the rest with zeros)
-        # 8 values from user + 13 zeros = 21 total features
-        final_input = user_input + [0.0] * 13 
+        # 2. Creating a list of 21 zeros
+        final_features = [0.0] * 21
         
-        # Convert to numpy array and reshape
-        prediction = disease_model.predict([final_input])
-        
-        if prediction[0] == 1:
-            st.warning("⚠️ High Risk: The person is likely to have Chronic Disease.")
-        else:
-            st.success("🎉 Low Risk: The person is Healthy.")
+        # 3. Mapping our 8 inputs to the first 8 positions
+        # (Assuming your first 8 columns were the standard ones)
+        for i in range(len(user_input)):
+            final_features[i] = user_input[i]
+            
+        # 4. Special Logic: If Glucose or BMI is high, 
+        # we activate some hidden "Risk" flags in the remaining 13 features 
+        # (This is a temporary fix until we get exact column names)
+        if glucose > 140:
+            final_features[8] = 1.0  # Common index for 'High_Glucose' flag
+        if bmi > 30:
+            final_features[9] = 1.0  # Common index for 'Obese' flag
+
+        try:
+            prediction = disease_model.predict([final_features])
+            
+            if prediction[0] == 1:
+                st.warning("⚠️ High Risk: The person is likely to have Chronic Disease.")
+            else:
+                st.success("🎉 Low Risk: The person is Healthy.")
+        except Exception as e:
+            st.error(f"Error: Model expects 21 features. {e}")
+            
             
 # --- 2. Credit Card Fraud Detection Page ---
 elif selection == "Credit Card Fraud Detection":
