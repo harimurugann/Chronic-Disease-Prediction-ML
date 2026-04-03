@@ -34,7 +34,7 @@ if st.button("Predict"):
                           mapping[family_hist], stress]])
     
     # Scale numerical features (simplified for app context)
-    features_scaled = scaler.transform(features)
+    prediction = model.predict([features])
     
     prediction = model.predict(features_scaled)
     
