@@ -28,7 +28,6 @@ stress = st.slider("Stress Level (1-10)", 1, 10, 5)
 # Note: Ensure this mapping matches the LabelEncoder used in training
 mapping = {"No": 0, "Yes": 1, "Male": 1, "Female": 0, "Other": 2, "Low": 1, "Moderate": 2, "High": 0, "Poor": 2, "Average": 0, "Good": 1}
 
-
  if st.button("Predict"):
     # 1. Create a simple list of features
     feature_list = [
