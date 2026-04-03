@@ -4,8 +4,7 @@ import pickle
 import numpy as np
 
 # Load the model and scaler
-model = pickle.load(open('chronic_model.pkl', 'rb'))
-scaler = pickle.load(open('scaler.pkl', 'rb'))
+model = pickle.load(open('chronic-disease-model.sav', 'rb'))
 
 st.title("Chronic Disease Prediction System")
 st.write("Enter patient details to predict chronic disease risk.")
