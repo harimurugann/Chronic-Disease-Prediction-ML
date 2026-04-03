@@ -28,15 +28,27 @@ stress = st.slider("Stress Level (1-10)", 1, 10, 5)
 # Note: Ensure this mapping matches the LabelEncoder used in training
 mapping = {"No": 0, "Yes": 1, "Male": 1, "Female": 0, "Other": 2, "Low": 1, "Moderate": 2, "High": 0, "Poor": 2, "Average": 0, "Good": 1}
 
-if st.button("Predict"):
-    features = np.array([[age, mapping[gender], bmi, mapping[smoking], mapping[alcohol], 
-                          activity, mapping[diet], sleep, bp, cholesterol, glucose, 
-                          mapping[family_hist], stress]])
+
+ if st.button("Predict"):
+    # 1. Create a simple list of features
+    feature_list = [
+        age, mapping[gender], bmi, mapping[smoking], mapping[alcohol],
+        activity, mapping[diet], sleep, bp, cholesterol, glucose,
+        mapping[family_hist], stress
+    ]
     
-    # Scale numerical features (simplified for app context)
-    prediction = model.predict([features])
+    # 2. Convert to 2D array (model expects this)
+    features_array = np.array([feature_list])
     
-    prediction = model.predict(features_scaled)
+    # 3. Final Prediction (Single line only)
+    prediction = model.predict(features_array)
+
+    # 4. Display Result
+    if prediction[0] == 1:
+        st.error("Warning: The patient is likely to have a chronic disease.")
+    else:
+        st.success("The patient is healthy.")
+    
     
     if prediction[0] == 1:
         st.error("Warning: The patient is likely to have a chronic disease.")
