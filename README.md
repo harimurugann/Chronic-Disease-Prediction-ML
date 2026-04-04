@@ -39,3 +39,5 @@ git clone https://github.com/harimurugann/Chronic-Disease-Prediction-ML.git
 
 import pickle
 model = pickle.load(open('chronic_disease_model.sav', 'rb'))
+
+3.Run the app : https://smart-health-detector.streamlit.app/
