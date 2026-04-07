@@ -3,6 +3,34 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+from fpdf import FPDF
+def create_pdf(name, age, result, prob, recs):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Title
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt="Chronic Disease Assessment Report", ln=True, align='C')
+    pdf.ln(10)
+    
+    # Patient Details
+    pdf.set_font("Arial", size=12)
+    pdf.cell(200, 10, txt=f"Patient Name: {name}", ln=True)
+    pdf.cell(200, 10, txt=f"Age: {age}", ln=True)
+    pdf.cell(200, 10, txt=f"Prediction Result: {result}", ln=True)
+    pdf.cell(200, 10, txt=f"Risk Probability: {prob:.1f}%", ln=True)
+    pdf.ln(5)
+    
+    # Recommendations
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(200, 10, txt="Health Recommendations:", ln=True)
+    pdf.set_font("Arial", size=10)
+    for r in recs:
+        # multi_cell use panna dhaan long text automatic-ah next line-ku pogum
+        pdf.multi_cell(0, 10, txt=r)
+    
+    # Return as bytes
+    return pdf.output(dest='S').encode('latin-1')
 
 # Page Config
 st.set_page_config(page_title="Chronic Disease Expert", layout="wide")
