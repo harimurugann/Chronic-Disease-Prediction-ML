@@ -29,7 +29,7 @@ def create_pdf(name, age, gender, result, prob, recs, medical_data):
     pdf.ln(5)
 
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt="Clinical Measurements:", ln=True, fill=True)
+    pdf.cell(0, 10, txt="Clinical Measurements Recorded:", ln=True, fill=True)
     pdf.set_font("Arial", size=10)
     for k, v in medical_data.items():
         pdf.cell(95, 8, txt=f" {k}", border=1)
@@ -37,7 +37,7 @@ def create_pdf(name, age, gender, result, prob, recs, medical_data):
     
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt="Detailed Doctor Recommendations:", ln=True, fill=True)
+    pdf.cell(0, 10, txt="Detailed Clinical Recommendations:", ln=True, fill=True)
     pdf.set_font("Arial", size=10)
     for r in recs:
         pdf.multi_cell(0, 8, txt=r)
@@ -52,9 +52,9 @@ st.set_page_config(page_title="Advanced Health AI Dashboard", layout="wide")
 try:
     pipeline = joblib.load('full_pipeline_compressed.sav')
 except:
-    st.error("⚠️ Model file not found! Ensure 'full_pipeline_compressed.sav' is in the folder.")
+    st.error("⚠️ Model file 'full_pipeline_compressed.sav' not found!")
 
-st.title("🏥 Next-Gen Chronic Disease Analytics & Simulator")
+st.title("🏥 Next-Gen Chronic Disease Analytics & Full Simulator")
 st.markdown("---")
 
 # Input Layout
@@ -64,20 +64,20 @@ with col1:
     patient_name = st.text_input("Full Name", "Patient Name")
     age = st.number_input("Age", 1, 120, 45)
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-    bmi = st.number_input("BMI (kg/m2)", 10.0, 50.0, 28.0)
-    smoking = st.selectbox("Smoking", ["No", "Yes"])
-    activity = st.slider("Physical Activity (Hrs/Week)", 0.0, 15.0, 2.0)
+    bmi = st.number_input("Current BMI", 10.0, 50.0, 28.0)
+    smoking = st.selectbox("Current Smoking Habit", ["No", "Yes"])
+    activity = st.slider("Current Activity (Hrs/Week)", 0.0, 15.0, 2.0)
 
 with col2:
     st.subheader("🩸 Clinical Metrics")
-    bp = st.number_input("Systolic Blood Pressure (mmHg)", 80, 200, 145)
-    cholesterol = st.number_input("Cholesterol Level (mg/dL)", 100, 400, 250)
-    glucose = st.number_input("Glucose Level (mg/dL)", 50, 300, 150)
+    bp = st.number_input("Current Systolic BP (mmHg)", 80, 200, 145)
+    cholesterol = st.number_input("Current Cholesterol (mg/dL)", 100, 400, 250)
+    glucose = st.number_input("Current Glucose (mg/dL)", 50, 300, 150)
     stress = st.slider("Current Stress Level (1-10)", 1, 10, 7)
     diet = st.selectbox("Diet Quality", ["Poor", "Average", "Good"])
     family_hist = st.selectbox("Family History", ["No", "Yes"])
 
-# Clinical data for PDF
+# Clinical summary for PDF
 clinical_summary = {
     "Blood Pressure": f"{bp} mmHg",
     "Glucose Level": f"{glucose} mg/dL",
@@ -95,45 +95,57 @@ input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0,
 # 3. ANALYSIS & INTERACTIVE FEATURES
 # ==========================================
 if st.button("🚀 Run Comprehensive Analysis"):
-    # A. Initial Prediction
+    # A. Initial Prediction (Fixing Threshold logic)
     prob = pipeline.predict_proba(input_df)[0][1] * 100
-    res_text = "Chronic Disease Detected" if prob > 50 else "No Chronic Disease"
     
-    st.markdown("---")
-    if prob > 50:
+    # Threshold Adjust: High risk data entries usually have prob > 40-50%
+    if prob >= 40.0: # Adjusted for better sensitivity to high risk
+        res_text = "Chronic Disease Detected"
         st.error(f"### Diagnosis: {res_text} (Current Risk: {prob:.1f}%)")
     else:
+        res_text = "No Chronic Disease"
         st.success(f"### Diagnosis: {res_text} (Current Risk: {prob:.1f}%)")
 
     # ------------------------------------------
-    # NEW FEATURE: WHAT-IF SIMULATOR
+    # FULL CLINICAL SIMULATOR
     # ------------------------------------------
-    st.subheader("🛠️ Lifestyle Improvement Simulator")
-    st.info("Adjust targets below to see how lifestyle changes could reduce your risk.")
+    st.markdown("---")
+    st.subheader("🛠️ Full Clinical Improvement Simulator")
+    st.info("What if you improve your BP, Glucose, and Cholesterol? Adjust below:")
     
-    sim_col1, sim_col2 = st.columns(2)
-    with sim_col1:
-        s_bmi = st.slider("Target BMI", 18.0, 35.0, float(bmi), key="s_bmi")
-        s_act = st.slider("Target Activity (Hrs/Wk)", 0.0, 20.0, float(activity), key="s_act")
-    with sim_col2:
+    sim_c1, sim_c2, sim_c3 = st.columns(3)
+    with sim_c1:
+        s_bp = st.slider("Target Systolic BP", 80, 200, int(bp), key="s_bp")
+        s_glucose = st.slider("Target Glucose Level", 50, 300, int(glucose), key="s_glu")
+    with sim_c2:
+        s_chol = st.slider("Target Cholesterol", 100, 400, int(cholesterol), key="s_chol")
+        s_bmi = st.slider("Target BMI", 18.0, 40.0, float(bmi), key="s_bmi")
+    with sim_c3:
         s_smoke = st.selectbox("Quit Smoking?", ["No", "Yes"], index=0 if smoking=="No" else 1, key="s_smoke")
-        s_stress = st.slider("Target Stress Level", 1, 10, int(stress), key="s_stress")
+        s_act = st.slider("Target Activity (Hrs/Wk)", 0.0, 20.0, float(activity), key="s_act")
 
-    # Simulation Prediction
+    # Simulation Prediction logic
     sim_df = input_df.copy()
-    sim_df['BMI'], sim_df['PhysicalActivity'], sim_df['Smoking'], sim_df['StressLevel'] = s_bmi, s_act, s_smoke, s_stress
-    sim_prob = pipeline.predict_proba(sim_df)[0][1] * 100
+    sim_df['BloodPressure'], sim_df['Glucose'], sim_df['Cholesterol'] = s_bp, s_glucose, s_chol
+    sim_df['BMI'], sim_df['PhysicalActivity'], sim_df['Smoking'] = s_bmi, s_act, s_smoke
     
+    sim_prob = pipeline.predict_proba(sim_df)[0][1] * 100
     diff = prob - sim_prob
-    st.metric(label="Simulated Risk Score", value=f"{sim_prob:.1f}%", delta=f"-{diff:.1f}%" if diff > 0 else f"+{abs(diff):.1f}%", delta_color="inverse")
+    
+    # Simulation Metric
+    st.metric(label="Simulated Risk Score", value=f"{sim_prob:.1f}%", 
+              delta=f"-{diff:.1f}%" if diff > 0 else f"+{abs(diff):.1f}%", 
+              delta_color="inverse")
+    
     if diff > 5:
-        st.balloons()
-        st.success(f"Great! These changes can lower your risk by {diff:.1f}%")
+        st.success(f"🌟 Excellent! These clinical improvements could lower your risk by **{diff:.1f}%**.")
+    elif diff < 0:
+        st.warning("⚠️ Warning: Deteriorating clinical markers will significantly increase your risk.")
 
     # ------------------------------------------
-    # PHASE 1 ANALYTICS: SHAP & BENCHMARKING
+    # ANALYTICS: SHAP & BENCHMARKING
     # ------------------------------------------
-    st.subheader("🔬 Deep-Dive Diagnostic Insights")
+    st.subheader("🔬 Diagnostic Deep-Dive Insights")
     an_col1, an_col2 = st.columns(2)
 
     with an_col1:
@@ -152,32 +164,32 @@ if st.button("🚀 Run Comprehensive Analysis"):
             
             fig1, ax1 = plt.subplots(figsize=(8, 5))
             sns.barplot(x='Impact', y='Factor', data=shap_df, palette='Reds_r', ax=ax1)
-            plt.title("Key Risk Drivers")
+            plt.title("Primary Risk Drivers")
             st.pyplot(fig1)
             plt.close(fig1)
         except:
-            st.info("AI Logic analysis in progress...")
+            st.info("Generating AI logic analysis...")
 
     with an_col2:
-        st.markdown("**Comparative Benchmarking**")
+        st.markdown("**Visual Benchmarking (Patient vs Norm)**")
         bench_df = pd.DataFrame({
-            'Metric': ['BP', 'Glucose', 'BMI'],
-            'Your Value': [bp, glucose, bmi],
-            'Healthy Avg': [120, 100, 22]
+            'Metric': ['BP', 'Glucose', 'Cholesterol', 'BMI'],
+            'Your Value': [bp, glucose, cholesterol, bmi],
+            'Healthy Target': [120, 100, 200, 22]
         }).melt(id_vars='Metric', var_name='Type', value_name='Value')
         fig2, ax2 = plt.subplots(figsize=(8, 5))
         sns.barplot(x='Metric', y='Value', hue='Type', data=bench_df, palette='muted', ax=ax2)
-        plt.title("Your Stats vs Targets")
+        plt.title("Your Stats vs Clinical Standards")
         st.pyplot(fig2)
         plt.close(fig2)
 
     # D. Clinical Advice & PDF
-    st.subheader("💡 Personalized Clinical Advice")
+    st.subheader("💡 Personalized Clinical Action Plan")
     recs = []
-    if bp > 130: recs.append("-> HIGH BLOOD PRESSURE: Reduce sodium intake and engage in daily 30-min brisk walking.")
-    if glucose > 140: recs.append("-> GLUCOSE ADVISORY: Limit refined carbohydrates and schedule a HbA1c test.")
-    if bmi > 25: recs.append("-> BMI MANAGEMENT: Focus on a calorie-deficit diet and strength training.")
-    if s_smoke == "Yes" and diff > 0: recs.append(f"-> QUITTING SMOKING: Can potentially reduce your risk by a significant margin.")
+    if bp > 130: recs.append("-> HYPERTENSION: Reduce salt and start BP tracking.")
+    if glucose > 140: recs.append("-> GLUCOSE: Immediate reduction in refined carbs.")
+    if cholesterol > 240: recs.append("-> CHOLESTEROL: Avoid trans-fats; include more fiber.")
+    if diff > 10: recs.append(f"-> SIMULATION INSIGHT: Improving your markers could save you from {res_text}.")
     
     for r in recs: st.write(r)
 
