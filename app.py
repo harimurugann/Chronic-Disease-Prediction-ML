@@ -3,141 +3,128 @@ import pandas as pd
 import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
+import numpy as np
+import shap
 from fpdf import FPDF
 
 # ==========================================
-# 1. UPDATED PDF Function with Detailed Recommendations
+# 1. PDF Function (Stable Version)
 # ==========================================
 def create_pdf(name, age, gender, result, prob, recs, medical_data):
     pdf = FPDF()
     pdf.add_page()
-    
-    # Title Header
-    pdf.set_fill_color(44, 62, 80)  # Dark Blue Header
-    pdf.set_text_color(255, 255, 255)
-    pdf.set_font("Arial", 'B', 20)
-    pdf.cell(0, 20, txt="CHRONIC DISEASE ASSESSMENT REPORT", ln=True, align='C', fill=True)
-    
-    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", 'B', 16)
+    pdf.cell(200, 10, txt="CHRONIC DISEASE DIAGNOSTIC REPORT", ln=True, align='C')
     pdf.ln(10)
-    
-    # Patient Info Section
-    pdf.set_font("Arial", 'B', 12)
-    pdf.set_fill_color(240, 240, 240)
-    pdf.cell(0, 10, txt=" PATIENT INFORMATION", ln=True, fill=True)
-    pdf.set_font("Arial", size=11)
-    pdf.cell(95, 10, txt=f"Name: {name}", border='B')
-    pdf.cell(95, 10, txt=f"Age: {age}", border='B', ln=True)
-    pdf.cell(95, 10, txt=f"Gender: {gender}", border='B')
-    pdf.cell(95, 10, txt=f"Date: {pd.Timestamp.now().strftime('%d-%m-%Y')}", border='B', ln=True)
+    pdf.set_font("Arial", size=12)
+    pdf.cell(0, 10, txt=f"Patient: {name} | Age: {age} | Gender: {gender}", ln=True)
+    pdf.cell(0, 10, txt=f"Status: {result} (Risk: {prob:.1f}%)", ln=True)
     pdf.ln(5)
-
-    # Clinical Metrics Table
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt=" CLINICAL MEASUREMENTS", ln=True, fill=True)
-    pdf.set_font("Arial", 'B', 10)
-    pdf.cell(95, 10, "Metric Description", border=1, align='C')
-    pdf.cell(95, 10, "Recorded Value", border=1, align='C', ln=True)
-    
+    pdf.cell(0, 10, txt="Clinical Values:", ln=True)
     pdf.set_font("Arial", size=10)
-    for key, value in medical_data.items():
-        pdf.cell(95, 8, f" {key}", border=1)
-        pdf.cell(95, 8, f" {value}", border=1, ln=True)
+    for k, v in medical_data.items():
+        pdf.cell(0, 8, txt=f"- {k}: {v}", ln=True)
     pdf.ln(5)
-
-    # Risk Result
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt=" DIAGNOSTIC SUMMARY", ln=True, fill=True)
-    pdf.set_font("Arial", 'B', 11)
-    color = (200, 0, 0) if "Detected" in result else (0, 128, 0)
-    pdf.set_text_color(*color)
-    pdf.cell(0, 10, txt=f"Status: {result} (Probability: {prob:.1f}%)", ln=True)
-    pdf.set_text_color(0, 0, 0)
-    pdf.ln(5)
-
-    # DETAILED DOCTOR RECOMMENDATIONS
-    pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt=" DOCTOR'S CLINICAL RECOMMENDATIONS", ln=True, fill=True)
+    pdf.cell(0, 10, txt="Advice:", ln=True)
     pdf.set_font("Arial", size=10)
-    pdf.ln(2)
-    
-    if not recs:
-        pdf.multi_cell(0, 8, txt="Patient exhibits healthy clinical markers. Maintain current lifestyle, balanced diet, and regular annual check-ups.")
-    else:
-        for r in recs:
-            pdf.multi_cell(0, 8, txt=f" {r}")
-    
-    pdf.ln(10)
-    pdf.set_font("Arial", 'I', 8)
-    pdf.cell(0, 10, txt="Note: This is an AI-generated assessment. Please consult a registered medical practitioner for clinical validation.", align='C')
-
+    for r in recs:
+        pdf.multi_cell(0, 8, txt=r)
     return pdf.output(dest='S').encode('latin-1')
 
 # ==========================================
-# 2. Main Streamlit App
+# 2. Main App Setup
 # ==========================================
-st.set_page_config(page_title="AI Health Expert", layout="wide")
+st.set_page_config(page_title="Advanced Health AI", layout="wide")
 pipeline = joblib.load('full_pipeline_compressed.sav')
 
-st.title("🏥 Clinical Disease Prediction & Reporting")
+st.title("🏥 Next-Gen Chronic Disease Analytics")
+st.markdown("This dashboard uses **Explainable AI (SHAP)** and **Clinical Benchmarking** to analyze health risks.")
 
+# Input Layout
 col1, col2 = st.columns(2)
 with col1:
-    patient_name = st.text_input("Patient Full Name", "Enter Name")
-    age = st.number_input("Age", 1, 120, 30)
+    name = st.text_input("Name", "Patient")
+    age = st.number_input("Age", 1, 120, 45)
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
-    bmi = st.number_input("BMI (Body Mass Index)", 10.0, 50.0, 25.0)
+    bmi = st.number_input("BMI", 10.0, 50.0, 28.0)
     smoking = st.selectbox("Smoking", ["No", "Yes"])
-    activity = st.slider("Activity (Hrs/Week)", 0.0, 10.0, 3.0)
+    activity = st.slider("Activity (Hrs/Week)", 0.0, 10.0, 2.0)
 
 with col2:
-    bp = st.number_input("Blood Pressure (Systolic)", 80, 200, 120)
-    cholesterol = st.number_input("Cholesterol (mg/dL)", 100, 400, 200)
-    glucose = st.number_input("Glucose Level (mg/dL)", 50, 300, 100)
-    stress = st.slider("Stress Level (1-10)", 1, 10, 5)
-    diet = st.selectbox("Diet Quality", ["Poor", "Average", "Good"])
+    bp = st.number_input("Systolic BP", 80, 200, 145)
+    cholesterol = st.number_input("Cholesterol", 100, 400, 250)
+    glucose = st.number_input("Glucose", 50, 300, 150)
+    stress = st.slider("Stress (1-10)", 1, 10, 7)
+    diet = st.selectbox("Diet", ["Poor", "Average", "Good"])
     family_hist = st.selectbox("Family History", ["No", "Yes"])
 
-# Prepare Clinical Data for PDF
-clinical_summary = {
-    "Body Mass Index": f"{bmi:.1f} kg/m2",
-    "Systolic Blood Pressure": f"{bp} mmHg",
-    "Total Cholesterol": f"{cholesterol} mg/dL",
-    "Blood Glucose Level": f"{glucose} mg/dL",
-    "Weekly Physical Activity": f"{activity} Hours",
-    "Stress Assessment Score": f"{stress}/10"
-}
-
-# Features for Model
+# Prepare Data
 features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
-# Adding dummy values for alcohol/sleep which are in model but not critical for custom recommendations
 input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0, bp, cholesterol, glucose, family_hist, stress]], columns=features)
 
-if st.button("Generate Diagnostic Report"):
+if st.button("Run Advanced Diagnosis"):
+    # 1. Prediction
     prob = pipeline.predict_proba(input_df)[0][1] * 100
-    res_text = "Chronic Disease Detected" if prob > 50 else "No Chronic Disease"
-
-    # Logic-based Recommendations (The missing part)
-    recs = []
-    if bmi > 25: 
-        recs.append("-> WEIGHT MANAGEMENT: BMI is above normal range. Clinically advised to follow a calorie-restricted diet and increase physical activity.")
-    if bp > 135: 
-        recs.append("-> HYPERTENSION ADVISORY: Elevated Blood Pressure detected. Reduce sodium (salt) intake and monitor BP twice daily.")
-    if glucose > 140: 
-        recs.append("-> DIABETIC PRECAUTION: High Glucose levels observed. Immediate reduction in refined sugars and carbohydrate monitoring is recommended.")
-    if cholesterol > 240:
-        recs.append("-> CHOLESTEROL CONTROL: High cholesterol detected. Focus on Omega-3 rich foods and avoid trans-fats.")
-    if smoking == "Yes": 
-        recs.append("-> CESSATION ADVICE: Smoking is a primary risk factor. Strongly recommend clinical support for tobacco cessation.")
-    if stress > 7:
-        recs.append("-> MENTAL WELLNESS: High stress score may impact cardiovascular health. Consider mindfulness or professional counseling.")
-
-    st.markdown("---")
-    st.subheader(f"Status: {res_text}")
+    res_text = "High Risk: Chronic Disease Likely" if prob > 50 else "Low Risk: Healthy"
     
-    # Generate PDF
-    pdf_output = create_pdf(patient_name, age, gender, res_text, prob, recs, clinical_summary)
-    st.download_button(label="📥 Download Clinical PDF Report",
-                       data=pdf_output,
-                       file_name=f"Report_{patient_name}.pdf",
-                       mime="application/pdf")
+    st.markdown("---")
+    st.header(f"Result: {res_text} ({prob:.1f}%)")
+
+    # ---------------------------------------------------------
+    # MIXED FEATURES: Choice A (SHAP) & Choice B (Benchmarking)
+    # ---------------------------------------------------------
+    st.subheader("🔬 Diagnostic Deep-Dive")
+    analysis_col1, analysis_col2 = st.columns(2)
+
+    with analysis_col1:
+        st.markdown("**Choice A: AI Decision Logic (SHAP)**")
+        try:
+            model = pipeline.named_steps['classifier']
+            preprocessor = pipeline.named_steps['preprocessor']
+            X_trans = preprocessor.transform(input_df)
+            f_names = preprocessor.get_feature_names_out()
+            
+            explainer = shap.TreeExplainer(model)
+            shap_v = explainer.shap_values(X_trans)
+            
+            # Extract impact for 'Disease' class
+            impact = shap_v[1][0] if isinstance(shap_v, list) else shap_v[0][:, 1]
+            
+            shap_df = pd.DataFrame({'Factor': f_names, 'Impact': impact}).sort_values(by='Impact', ascending=False).head(5)
+            fig1, ax1 = plt.subplots()
+            sns.barplot(x='Impact', y='Factor', data=shap_df, palette='OrRd', ax=ax1)
+            plt.title("Top Factors Pushing Risk Up")
+            st.pyplot(fig1)
+        except:
+            st.info("Loading AI Logic...")
+
+    with analysis_col2:
+        st.markdown("**Choice B: Comparative Benchmarking**")
+        # Comparing Patient vs Clinical Average
+        bench_data = {
+            'Metric': ['BP', 'Cholesterol', 'Glucose', 'BMI'],
+            'Your Value': [bp, cholesterol, glucose, bmi],
+            'Healthy Avg': [120, 200, 100, 22]
+        }
+        bench_df = pd.DataFrame(bench_data).melt(id_vars='Metric', var_name='Type', value_name='Value')
+        
+        fig2, ax2 = plt.subplots()
+        sns.barplot(x='Metric', y='Value', hue='Type', data=bench_df, palette='muted', ax=ax2)
+        plt.title("Your Metrics vs. Healthy Targets")
+        st.pyplot(fig2)
+
+    # Recommendations
+    st.subheader("💡 Action Plan")
+    recs = []
+    if bp > 130: recs.append("-> BP is higher than the 120mmHg benchmark. Reduce salt.")
+    if glucose > 140: recs.append("-> Glucose is above 100mg/dL average. Check sugar intake.")
+    if bmi > 25: recs.append("-> BMI exceeds healthy benchmark (22). Increase cardio.")
+    
+    for r in recs: st.write(r)
+
+    # PDF
+    clinical_data = {"BP": f"{bp} mmHg", "Glucose": f"{glucose} mg/dL", "BMI": f"{bmi}"}
+    pdf_b = create_pdf(name, age, gender, res_text, prob, recs, clinical_data)
+    st.download_button("📥 Download Analytical Report", pdf_b, f"{name}_Analysis.pdf")
