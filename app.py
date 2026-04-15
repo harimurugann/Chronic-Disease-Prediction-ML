@@ -8,13 +8,11 @@ import shap
 from fpdf import FPDF
 
 # ==========================================
-# 1. FIXED PDF Function (With Units & Clinical Values)
+# 1. FIXED PDF Function
 # ==========================================
 def create_pdf(name, age, gender, result, prob, recs, medical_data):
     pdf = FPDF()
     pdf.add_page()
-    
-    # Header
     pdf.set_fill_color(44, 62, 80)
     pdf.set_text_color(255, 255, 255)
     pdf.set_font("Arial", 'B', 20)
@@ -22,33 +20,24 @@ def create_pdf(name, age, gender, result, prob, recs, medical_data):
     pdf.set_text_color(0, 0, 0)
     pdf.ln(10)
     
-    # Patient Info
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, txt=f"Patient: {name} | Age: {age} | Gender: {gender}", ln=True, border='B')
     pdf.ln(5)
 
-    # Clinical Metrics Table (This will now show all values)
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt=" CLINICAL MEASUREMENTS (Recorded Points)", ln=True, fill=True)
-    pdf.set_font("Arial", 'B', 10)
-    pdf.cell(95, 10, "Metric Description", border=1, align='C')
-    pdf.cell(95, 10, "Recorded Value", border=1, align='C', ln=True)
-    
+    pdf.cell(0, 10, txt=" CLINICAL MEASUREMENTS", ln=True, fill=True)
     pdf.set_font("Arial", size=10)
-    # Loop through medical_data to fill the table
     for key, value in medical_data.items():
         pdf.cell(95, 8, f" {key}", border=1)
         pdf.cell(95, 8, f" {value}", border=1, ln=True)
+    
     pdf.ln(5)
-
-    # Risk Result
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt=f"Diagnosis: {result} (Probability: {prob:.1f}%)", ln=True)
+    pdf.cell(0, 10, txt=f"Diagnosis: {result} (Risk Score: {prob:.1f}%)", ln=True)
+    
     pdf.ln(5)
-
-    # Recommendations
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(0, 10, txt=" DOCTOR'S RECOMMENDATIONS", ln=True, fill=True)
+    pdf.cell(0, 10, txt=" RECOMMENDATIONS", ln=True, fill=True)
     pdf.set_font("Arial", size=10)
     for r in recs:
         pdf.multi_cell(0, 8, txt=r)
@@ -56,10 +45,15 @@ def create_pdf(name, age, gender, result, prob, recs, medical_data):
     return pdf.output(dest='S').encode('latin-1')
 
 # ==========================================
-# 2. Main App Logic
+# 2. Main App Setup
 # ==========================================
 st.set_page_config(page_title="Professional AI Health", layout="wide")
-pipeline = joblib.load('full_pipeline_compressed.sav')
+
+# Loading the model safely
+try:
+    pipeline = joblib.load('full_pipeline_compressed.sav')
+except Exception as e:
+    st.error(f"Error loading model: {e}")
 
 st.title("🏥 Professional Health Prediction & Analytics")
 
@@ -70,7 +64,7 @@ with col1:
     gender = st.selectbox("Gender", ["Male", "Female", "Other"])
     bmi = st.number_input("BMI (kg/m2)", 10.0, 50.0, 25.0)
     smoking = st.selectbox("Smoking", ["No", "Yes"])
-    activity = st.slider("Activity (Hrs/Week)", 0.0, 10.0, 3.0)
+    activity = st.slider("Activity (Hrs/Week)", 0.0, 10.0, 2.20)
 
 with col2:
     bp = st.number_input("Systolic BP (mmHg)", 80, 200, 120)
@@ -80,34 +74,94 @@ with col2:
     diet = st.selectbox("Diet Quality", ["Poor", "Average", "Good"])
     family_hist = st.selectbox("Family History", ["No", "Yes"])
 
-# --- This is the key fix: Mapping the data with units ---
-clinical_summary = {
-    "Systolic Blood Pressure": f"{bp} mmHg",
-    "Blood Glucose Level": f"{glucose} mg/dL",
-    "Total Cholesterol": f"{cholesterol} mg/dL",
-    "Body Mass Index (BMI)": f"{bmi:.1f}",
-    "Physical Activity": f"{activity} Hours/Week",
-    "Stress Level Score": f"{stress}/10"
-}
-
-# Model Prediction
+# Data Preparation
 features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
 input_df = pd.DataFrame([[age, gender, bmi, smoking, "Low", activity, diet, 7.0, bp, cholesterol, glucose, family_hist, stress]], columns=features)
 
+clinical_summary = {
+    "Blood Pressure": f"{bp} mmHg",
+    "Glucose Level": f"{glucose} mg/dL",
+    "Cholesterol": f"{cholesterol} mg/dL",
+    "BMI": f"{bmi:.1f}",
+    "Activity": f"{activity} Hrs/Wk",
+    "Stress": f"{stress}/10"
+}
+
+st.markdown("---")
+
+# ==========================================
+# 3. TRIGGER: Everything must be INSIDE this if-block
+# ==========================================
 if st.button("Generate Diagnostic Report"):
+    # A. Prediction Analysis
     prob = pipeline.predict_proba(input_df)[0][1] * 100
     res_text = "Chronic Disease Detected" if prob > 50 else "No Chronic Disease"
 
-    # Logic-based Recommendations
-    recs = []
-    if bp > 135: recs.append("-> BP is high. Reduce salt and monitor systolic levels.")
-    if glucose > 140: recs.append("-> Glucose is high. Limit sugar and processed carbs.")
-    if cholesterol > 240: recs.append("-> High Cholesterol. Avoid trans-fats.")
-    
-    st.markdown("---")
-    st.subheader(f"Status: {res_text} ({prob:.1f}%)")
+    if prob > 50:
+        st.error(f"### Status: {res_text} ({prob:.1f}%)")
+    else:
+        st.success(f"### Status: {res_text} ({prob:.1f}%)")
 
-    # Generate PDF with the fixed clinical_summary
+    # B. Analytics Section (SHAP & Benchmarking)
+    st.subheader("🔬 Diagnostic Deep-Dive Insights")
+    an_col1, an_col2 = st.columns(2)
+
+    with an_col1:
+        st.markdown("**AI Decision Logic (SHAP)**")
+        try:
+            model = pipeline.named_steps['classifier']
+            preprocessor = pipeline.named_steps['preprocessor']
+            X_trans = preprocessor.transform(input_df)
+            f_names = preprocessor.get_feature_names_out()
+            
+            explainer = shap.TreeExplainer(model)
+            shap_v = explainer.shap_values(X_trans)
+            
+            # Robust mapping for visualization
+            if isinstance(shap_v, list): sv = shap_v[1][0]
+            elif len(shap_v.shape) == 3: sv = shap_v[0, :, 1]
+            else: sv = shap_v[0]
+            
+            shap_df = pd.DataFrame({'Factor': f_names, 'Impact': np.array(sv).flatten()})
+            shap_df = shap_df[shap_df['Impact'] > 0].sort_values(by='Impact', ascending=False).head(5)
+            
+            fig1, ax1 = plt.subplots(figsize=(8, 5))
+            sns.barplot(x='Impact', y='Factor', data=shap_df, palette='Reds_r', ax=ax1)
+            plt.title("Primary Risk Drivers", fontweight='bold')
+            st.pyplot(fig1)
+            plt.close(fig1)
+        except Exception as e:
+            st.info("Visualizing AI risk factors...")
+
+    with an_col2:
+        st.markdown("**Visual Benchmarking (Points)**")
+        bench_data = {
+            'Metric': ['BP', 'Cholesterol', 'Glucose', 'BMI'],
+            'Your Value': [bp, cholesterol, glucose, bmi],
+            'Healthy Avg': [120, 200, 100, 22]
+        }
+        bench_df = pd.DataFrame(bench_data).melt(id_vars='Metric', var_name='Type', value_name='Value')
+        
+        fig2, ax2 = plt.subplots(figsize=(8, 5))
+        sns.barplot(x='Metric', y='Value', hue='Type', data=bench_df, palette='muted', ax=ax2)
+        plt.title("Patient Stats vs Target Benchmarks", fontweight='bold')
+        st.pyplot(fig2)
+        plt.close(fig2)
+
+    # C. Recommendations
+    st.subheader("💡 Health Recommendations")
+    recs = []
+    if bp > 130: recs.append("-> BP is high. Reduce salt intake.")
+    if glucose > 140: recs.append("-> Glucose levels are high. Limit sugar.")
+    if smoking == "Yes": recs.append("-> Smoking detected as high-risk. Cessation strongly advised.")
+    if diet == "Poor": recs.append("-> Diet quality is poor. Focus on fiber and proteins.")
+    
+    if not recs:
+        st.write("Maintain your current healthy lifestyle.")
+    else:
+        for r in recs: st.write(r)
+
+    # D. PDF Report
     pdf_output = create_pdf(patient_name, age, gender, res_text, prob, recs, clinical_summary)
     st.download_button(label="📥 Download Detailed PDF Report",
                        data=pdf_output,
