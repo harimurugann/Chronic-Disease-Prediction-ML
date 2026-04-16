@@ -7,3 +7,4 @@ joblib
 streamlit
 fpdf
 shap
+fpdf2
