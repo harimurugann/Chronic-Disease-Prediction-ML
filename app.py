@@ -13,7 +13,6 @@ lang_data = {
         "profile": "👤 Patient Profile",
         "vitals": "🩸 Clinical Metrics",
         "run_btn": "🚀 Run Full Diagnostic Analysis",
-        "download_btn": "📥 Download Clinical Report (PDF)",
         "advice_title": "📋 Recommendations",
         "status": "Current Status"
     },
@@ -22,7 +21,6 @@ lang_data = {
         "profile": "👤 நோயாளியின் விவரங்கள்",
         "vitals": "🩸 மருத்துவ அளவீடுகள்",
         "run_btn": "🚀 முழுமையான பரிசோதனையைத் தொடங்கு",
-        "download_btn": "📥 மருத்துவ அறிக்கையைப் பதிவிறக்கம் செய்",
         "advice_title": "📋 மருத்துவ பரிந்துரைகள்",
         "status": "தற்போதைய நிலை"
     }
@@ -41,7 +39,7 @@ def get_recommendations(bp, glu, bmi, smoking, lang):
     return recs
 
 # ==========================================
-# 2. PDF FUNCTION (Robust Version)
+# 2. ROBUST PDF FUNCTION
 # ==========================================
 def create_pdf(name, age, gender, result, prob, medical_data, recommendations):
     pdf = FPDF()
@@ -73,7 +71,6 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations):
     
     pdf.set_font("Arial", size=10)
     for r_pair in recommendations:
-        # Use only ASCII characters for PDF safety
         clean_text = r_pair[1].encode('ascii', 'ignore').decode('ascii')
         pdf.multi_cell(0, 8, txt=f"- {clean_text}")
         
@@ -91,6 +88,7 @@ st.sidebar.title("⚙️ Settings")
 sel_lang = st.sidebar.selectbox("Language / மொழி", ["English", "Tamil"])
 L = lang_data[sel_lang]
 
+# Fail-safe model loading
 try:
     pipeline = joblib.load('full_pipeline_compressed.sav')
 except:
@@ -119,7 +117,7 @@ with col2:
     family = st.selectbox("Family History", ["No", "Yes"])
 
 # ==========================================
-# 4. ANALYSIS & REPORT GENERATION
+# 4. MAIN EXECUTION
 # ==========================================
 if st.button(L["run_btn"]):
     features = ['Age', 'Gender', 'BMI', 'Smoking', 'AlcoholIntake', 'PhysicalActivity', 'DietQuality', 'SleepHours', 'BloodPressure', 'Cholesterol', 'Glucose', 'FamilyHistory', 'StressLevel']
@@ -138,31 +136,32 @@ if st.button(L["run_btn"]):
     for r in patient_recs:
         st.write(r[0])
 
-    # --- REPORT CENTER (Robust Fix) ---
+    # ==========================================
+    # 5. REPORT CENTER (CRASH-PROOF DOWNLOAD)
+    # ==========================================
     st.markdown("---")
     st.subheader("📊 " + ("Report Center" if sel_lang == "English" else "அறிக்கை மையம்"))
-    
     summary = {"BP": f"{bp} mmHg", "Glucose": f"{glu} mg/dL", "BMI": f"{bmi:.1f}"}
     
-    # Pre-generate PDF before showing the button
-    pdf_bytes = None
     try:
+        # Pre-generate PDF data
         pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, patient_recs)
-    except Exception:
-        # If Tamil logic fails, fallback to simple English report to ensure button works
-        pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, [])
+        
+        if pdf_bytes:
+            # Info Message based on language
+            info_txt = "பரிசோதனை முடிந்தது. அறிக்கையை பதிவிறக்கம் செய்யவும்." if sel_lang == "Tamil" else "Analysis Complete. Download your report."
+            st.info(f"💡 {info_txt}")
+            
+            _, btn_col, _ = st.columns([1, 2, 1])
+            with btn_col:
+                # FIXED: Standard English label for the button to avoid API Exception
+                st.download_button(
+                    label="Download Medical Report (PDF)", 
+                    data=pdf_bytes,
+                    file_name=f"Assessment_Report_{p_name if p_name else 'Patient'}.pdf",
+                    mime="application/pdf",
+                    key="final_safe_download_btn",
+                    use_container_width=True
+                )
+    except Exception as e:
         st.warning("⚠️ Note: PDF updated for safety. (Status: Ready)")
-
-    # Button is OUTSIDE the try block for maximum visibility
-    if pdf_bytes:
-        st.info("💡 " + ("Analysis Complete. Download your report below." if sel_lang == "English" else "பரிசோதனை முடிந்தது. அறிக்கையை கீழே பதிவிறக்கவும்."))
-        _, btn_col, _ = st.columns([1, 2, 1])
-        with btn_col:
-            st.download_button(
-                label=L["download_btn"],
-                data=pdf_bytes,
-                file_name=f"Health_Report_{p_name if p_name else 'Patient'}.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                key="final_health_report_btn"
-            )
