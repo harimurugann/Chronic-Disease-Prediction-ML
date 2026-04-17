@@ -6,9 +6,9 @@ from fpdf import FPDF
 import base64
 
 # ==========================================
-# 1. ROBUST PDF FUNCTION (Fixed AttributeError)
+# 1. ROBUST PDF FUNCTION (With Clinical Advice Fix)
 # ==========================================
-def create_pdf(name, age, gender, result, prob, medical_data, recommendations):
+def create_pdf(name, age, gender, result, prob, medical_data, recommendations, lang):
     try:
         pdf = FPDF()
         pdf.add_page()
@@ -22,6 +22,7 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations):
         pdf.set_font("Arial", 'B', 12)
         pdf.cell(0, 10, txt=f"Patient: {name if name else 'N/A'} | Age: {age} | Gender: {gender}", ln=True)
         
+        # Table of Vitals
         pdf.ln(5)
         for key, value in medical_data.items():
             pdf.set_font("Arial", 'B', 10)
@@ -29,27 +30,33 @@ def create_pdf(name, age, gender, result, prob, medical_data, recommendations):
             pdf.set_font("Arial", size=10)
             pdf.cell(100, 8, f" {value}", border=1, ln=True)
 
+        # Assessment Result
         pdf.ln(10)
         pdf.set_font("Arial", 'B', 12)
         pdf.cell(0, 10, txt=f"Assessment Result: {result} ({prob:.1f}%)", ln=True)
 
-        pdf.ln(5)
-        pdf.set_font("Arial", 'B', 12)
-        pdf.cell(0, 10, txt="CLINICAL ADVICE:", ln=True)
-        
-        pdf.set_font("Arial", size=10)
-        for r_pair in recommendations:
-            clean_text = r_pair[1].encode('ascii', 'ignore').decode('ascii')
-            pdf.multi_cell(0, 8, txt=f"- {clean_text}")
+        # --- ADDING CLINICAL ADVICE TO PDF ---
+        if recommendations:
+            pdf.ln(5)
+            pdf.set_font("Arial", 'B', 12)
+            # Choosing title based on language selection
+            advice_title = "CLINICAL ADVICE & NEXT STEPS:" if lang == "English" else "MARUTHUVA ALOSANAI (ADVICE):"
+            pdf.cell(0, 10, txt=advice_title, ln=True)
             
-        # --- FIXED PDF OUTPUT LOGIC ---
+            pdf.set_font("Arial", size=10)
+            for r_pair in recommendations:
+                # Index 1 contains safe ASCII text for PDF
+                clean_text = r_pair[1].encode('ascii', 'ignore').decode('ascii')
+                pdf.multi_cell(0, 8, txt=f"- {clean_text}")
+            
+        # PDF Output handling
         pdf_out = pdf.output()
         if isinstance(pdf_out, str):
             return pdf_out.encode('latin-1', 'ignore')
-        return pdf_out # Already bytes, so no .encode() needed
+        return pdf_out
         
-    except Exception as e:
-        return b"" # Fail-safe empty bytes
+    except Exception:
+        return b""
 
 # ==========================================
 # 2. RECOMMENDATION LOGIC
@@ -64,10 +71,11 @@ def get_recommendations(bp, glu, bmi, smoking, lang):
     else:
         if bp > 140: recs.append(("✅ BP is High: Reduce salt intake.", "BP is High: Reduce salt intake."))
         if glu > 150: recs.append(("✅ Glucose is High: Avoid sugar.", "Glucose is High: Avoid sugar."))
+        if bmi > 25: recs.append(("✅ Weight: Daily 30 mins walk.", "Weight: Daily 30 mins walk."))
     return recs
 
 # ==========================================
-# 3. MAIN APP INTERFACE
+# 3. MAIN APP UI
 # ==========================================
 st.set_page_config(page_title="Health AI Pro", layout="wide")
 
@@ -114,34 +122,18 @@ if st.button("🚀 Run Full Diagnostic Analysis"):
     if prob > 50: st.error(f"### Diagnosis: {res_text} ({prob:.1f}%)")
     else: st.success(f"### Diagnosis: {res_text} ({prob:.1f}%)")
 
-    # Display Recommendations
+    # Display Recommendations on Dashboard
     patient_recs = get_recommendations(bp, glu, bmi, smoking, sel_lang)
     st.subheader("📋 Recommendations")
     for r in patient_recs:
         st.write(r[0])
 
-    # --- REPORT CENTER (Base64 Bypass) ---
+    # --- REPORT CENTER ---
     st.markdown("---")
     st.subheader("📊 Report Center")
     summary = {"BP": f"{bp} mmHg", "Glucose": f"{glu} mg/dL", "BMI": f"{bmi:.1f}"}
     
-    # Generate PDF bytes safely
-    pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, patient_recs)
+    # Pre-generate PDF bytes with the recommendations and language choice
+    pdf_bytes = create_pdf(p_name, age, gender, res_text, prob, summary, patient_recs, sel_lang)
     
     if pdf_bytes and len(pdf_bytes) > 0:
-        b64_pdf = base64.b64encode(pdf_bytes).decode()
-        
-        # Professional HTML Blue Button
-        download_html = f'''
-        <div style="text-align: center; margin: 20px 0;">
-            <a href="data:application/octet-stream;base64,{b64_pdf}" download="Report_{p_name if p_name else 'Patient'}.pdf" 
-            style="background-color: #007bff; color: white; padding: 15px 35px; text-decoration: none; 
-            border-radius: 8px; font-weight: bold; font-size: 18px; display: inline-block;">
-                📥 DOWNLOAD MEDICAL REPORT (PDF)
-            </a>
-        </div>
-        '''
-        st.markdown(download_html, unsafe_allow_html=True)
-        st.success("✅ Analysis complete. Click the blue button above to download.")
-    else:
-        st.error("⚠️ Error generating PDF. Please re-run the analysis.")
