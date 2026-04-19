@@ -61,8 +61,9 @@ def load_model():
     """Load the trained pipeline from disk (cached across re-runs)."""
     # Try best (tuned) pipeline first, fall back to base pipeline
     paths = [
-        "artefacts/chronic_disease_best_pipeline.pkl.gz",
-        "artefacts/chronic_disease_pipeline.pkl.gz"
+        "artifacts/chronic_disease_best_pipeline.pkl.gz",
+        "artifacts/chronic_disease_gbm_model.sav",
+        "artifacts/chronic_disease_pipeline.pkl.gz"
     ]
     for path in paths:
         if os.path.exists(path):
