@@ -11,6 +11,10 @@ import numpy as np
 import joblib
 import os
 
+# --- INITIALIZATION --
+if "current_tab" not in st.session_state:
+    st.session_state.current_tab = "Home"
+
 # ─── Page Configuration ───────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Chronic Disease Predictor",
