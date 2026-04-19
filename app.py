@@ -56,26 +56,19 @@ st.markdown("""
 
 
 # ─── Load Model ───────────────────────────────────────────────────────────────
-@st.cache_resource
 def load_model():
-    """Load the trained pipeline from disk (cached across re-runs)."""
-    # Try best (tuned) pipeline first, fall back to base pipeline
-    def load_model():
-      paths = [
+    paths = [
         "artifacts/chronic_disease_best_pipeline.pkl.gz",
         "artifacts/chronic_disease_gbm_model.sav",
         "artifacts/chronic_disease_pipeline.pkl.gz"
     ]
-    
     for path in paths:
         if os.path.exists(path):
             return joblib.load(path), path
-            
     st.error("❌ Model file not found. Run chronic_disease_model.py first.")
     st.stop()
 
 model, model_path = load_model()
-
 if st.session_state.current_tab == "Visualisation":
     st.header("📊 Model Performance Visualisations")
     
