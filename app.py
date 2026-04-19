@@ -60,16 +60,21 @@ st.markdown("""
 def load_model():
     """Load the trained pipeline from disk (cached across re-runs)."""
     # Try best (tuned) pipeline first, fall back to base pipeline
+   def load_model():
+    # Inga 'artefacts' ku bathula 'artifacts' (i-vachu) nu maathiruken
     paths = [
-        "artefacts/chronic_disease_best_pipeline.pkl.gz",
-        "artefacts/chronic_disease_pipeline.pkl.gz"
+        "artifacts/chronic_disease_best_pipeline.pkl.gz",
+        "artifacts/chronic_disease_gbm_model.sav",
+        "artifacts/chronic_disease_pipeline.pkl.gz"
     ]
+    
     for path in paths:
         if os.path.exists(path):
             return joblib.load(path), path
-    st.error("❌  Model file not found. Run chronic_disease_model.py first.")
+            
+    # Intha error handling loop-ku veliya irukkanum (Indent check pannikonga)
+    st.error("❌ Model file not found. Run chronic_disease_model.py first.")
     st.stop()
-
 model, model_path = load_model()
 
 
