@@ -61,7 +61,6 @@ def load_model():
     """Load the trained pipeline from disk (cached across re-runs)."""
     # Try best (tuned) pipeline first, fall back to base pipeline
     def load_model():
-    # Inga 'artefacts' ku bathula 'artifacts' (i-vachu) nu maathiruken
     paths = [
         "artifacts/chronic_disease_best_pipeline.pkl.gz",
         "artifacts/chronic_disease_gbm_model.sav",
@@ -71,6 +70,39 @@ def load_model():
     for path in paths:
         if os.path.exists(path):
             return joblib.load(path), path
+            
+    st.error("❌ Model file not found. Run chronic_disease_model.py first.")
+    st.stop()
+
+model, model_path = load_model()
+
+if st.session_state.current_tab == "Visualisation":
+    st.header("📊 Model Performance Visualisations")
+    
+    tabs = st.tabs([
+        "Target Distribution", "Feature Distributions", "Correlation Heatmap",
+        "EDA Box Plots", "ROC Curve", "Confusion Matrix", 
+        "Feature Importance", "Cross-Validation"
+    ])
+    
+    plot_map = {
+        0: "artifacts/01_target_distribution.png",
+        1: "artifacts/02_feature_distributions.png",
+        2: "artifacts/03_correlation_heatmap.png",
+        3: "artifacts/04_eda_boxplots.png",
+        4: "artifacts/07_roc_curve.png",
+        5: "artifacts/06_confusion_matrix.png",
+        6: "artifacts/09_feature_importance.png",
+        7: "artifacts/08_cross_validation.png",
+    }
+    
+    for tab_idx, tab in enumerate(tabs):
+        with tab:
+            img_path = plot_map[tab_idx]
+            if os.path.exists(img_path):
+                st.image(img_path, use_container_width=True)
+            else:
+                st.warning(f"Plot not found: {img_path}. Run chronic_disease_model.py first.")
             
     # Intha error handling loop-ku veliya irukkanum (Indent check pannikonga)
     st.error("❌ Model file not found. Run chronic_disease_model.py first.")
