@@ -244,29 +244,30 @@ with col_right:
         st.info("👈 Fill in the patient details on the left panel and click **Predict Risk**.")
 
 if st.session_state.current_tab == "Visualisation":
-    st.header("📊 Model Performance Visualisations")
-    tabs = st.tabs([
-        "Target Distribution", "Feature Distributions", "Correlation Heatmap",
-        "EDA Box Plots", "ROC Curve", "Confusion Matrix", 
-        "Feature Importance", "Cross-Validation"
-    ])
-    plot_map = {
-        0: "artifacts/01_target_distribution.png",
-        1: "artifacts/02_feature_distributions.png",
-        2: "artifacts/03_correlation_heatmap.png",
-        3: "artifacts/04_eda_boxplots.png",
-        4: "artifacts/07_roc_curve.png",
-        5: "artifacts/06_confusion_matrix.png",
-        6: "artifacts/09_feature_importance.png",
-        7: "artifacts/08_cross_validation.png",
-    }
-    for tab_idx, tab in enumerate(tabs):
-        with tab:
-            img_path = plot_map[tab_idx]
-            if os.path.exists(img_path):
-                st.image(img_path, use_container_width=True)
-            else:
-                st.warning(f"Plot not found: {img_path}")
+    st.header("📊 Interactive Data Visualisations")
+    
+    # Check if plotly is available
+    try:
+        import plotly.express as px
+        
+        # 1. Age Distribution Graph (Live)
+        fig_age = px.histogram(df, x="Age", color="HasChronicDisease", 
+                             marginal="box", nbins=30,
+                             title="Age Distribution vs Health Outcome",
+                             color_discrete_map={0: "#2ecc71", 1: "#e74c3c"})
+        st.plotly_chart(fig_age, use_container_width=True)
+        
+        st.divider()
+        
+        # 2. BMI vs Blood Pressure (Live Correlation)
+        fig_scatter = px.scatter(df, x="BMI", y="BloodPressure", 
+                               color="HasChronicDisease",
+                               title="BMI vs Blood Pressure Correlation",
+                               color_discrete_map={0: "#2ecc71", 1: "#e74c3c"})
+        st.plotly_chart(fig_scatter, use_container_width=True)
+        
+    except ImportError:
+        st.error("Please add 'plotly' to your requirements.txt file to see live graphs.")
 # ─── Footer ───────────────────────────────────────────────────────────────────
 st.divider()
 st.caption(
