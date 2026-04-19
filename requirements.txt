@@ -1,0 +1,28 @@
+# ─────────────────────────────────────────────────────────────
+#  Chronic Disease Prediction — Python Dependencies
+#  Install with:  pip install -r requirements.txt
+# ─────────────────────────────────────────────────────────────
+
+# Core data science
+numpy>=1.24.0
+pandas>=2.0.0
+
+# Machine learning
+scikit-learn>=1.3.0
+
+# Optional — drop-in GBM replacement with GPU support
+# xgboost>=2.0.0            # uncomment if you want XGBoost
+# lightgbm>=4.0.0           # uncomment if you want LightGBM
+
+# Visualisation
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Model persistence
+joblib>=1.3.0
+
+# Web application
+streamlit>=1.30.0
+
+# Utilities
+scipy>=1.11.0
