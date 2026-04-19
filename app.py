@@ -65,7 +65,7 @@ def load_model():
         "artefacts/chronic_disease_pipeline.pkl.gz"
     ]
     for path in paths:
-        if os.path.exists(path):
+        if os.path.exists('artefacts/chronic_disease_gbm_model.sav'):
             return joblib.load(path), path
     st.error("❌  Model file not found. Run chronic_disease_model.py first.")
     st.stop()
