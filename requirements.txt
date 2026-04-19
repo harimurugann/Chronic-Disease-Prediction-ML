@@ -17,7 +17,7 @@ scikit-learn>=1.3.0
 # Visualisation
 matplotlib>=3.7.0
 seaborn>=0.12.0
-
+plotly
 # Model persistence
 joblib>=1.3.0
 
