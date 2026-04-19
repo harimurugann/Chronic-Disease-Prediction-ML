@@ -216,16 +216,15 @@ tabs = st.tabs([
 ])
 
 plot_map = {
-    0: "artefacts/01_target_distribution.png",
-    1: "artefacts/02_feature_distributions.png",
-    2: "artefacts/03_correlation_heatmap.png",
-    3: "artefacts/04_eda_boxplots.png",
-    4: "artefacts/07_roc_curve.png",
-    5: "artefacts/06_confusion_matrix.png",
-    6: "artefacts/09_feature_importance.png",
-    7: "artefacts/08_cross_validation.png",
-}
-
+        0: "artifacts/01_target_distribution.png",
+        1: "artifacts/02_feature_distributions.png",
+        2: "artifacts/03_correlation_heatmap.png",
+        3: "artifacts/04_eda_boxplots.png",
+        4: "artifacts/07_roc_curve.png",
+        5: "artifacts/06_confusion_matrix.png",
+        6: "artifacts/09_feature_importance.png",
+        7: "artifacts/08_cross_validation.png",
+    }
 for tab_idx, tab in enumerate(tabs):
     with tab:
         img_path = plot_map[tab_idx]
